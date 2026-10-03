@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aqua AI | Smart Water Quality Monitoring</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        aqua: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            400: '#2dd4bf',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        },
+                        glass: {
+                            bg: 'rgba(255, 255, 255, 0.85)',
+                            border: 'rgba(255, 255, 255, 0.6)'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: url('image_662bfb.jpg') no-repeat center center fixed; 
+            background-size: cover;
+            color: #1e293b;
+            overflow: hidden; /* Handle scrolling inside containers */
+            font-size: 13px; /* Reduced base text size */
+        }
+
+        /* Glassmorphism Panel - Highly readable over image */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        }
+
+        .glass-panel-heavy {
+            background: rgba(255, 255, 255, 0.90);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.8); }
+
+        /* Section transitions */
+        .page-section {
+            display: none;
+            animation: fadeIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .page-section.active { display: block; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Chatbot Animations */
+        .chatbot-window {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: bottom right;
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
+        .chatbot-window.open {
+            transform: scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+        .chat-message { animation: slideInChat 0.3s ease-out forwards; }
+        @keyframes slideInChat {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Status Dot */
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .status-online { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.8); }
+        
+        .typing-indicator span {
+            display: inline-block;
+            width: 4px;
+            height: 4px;
+            background-color: currentColor;
+            border-radius: 50%;
+            margin: 0 2px;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="flex h-screen w-full antialiased selection:bg-aqua-500 selection:text-white">
+
+    <aside class="w-60 glass-panel border-r border-white/60 hidden md:flex flex-col z-20 shrink-0 text-xs">
+        <!-- Brand -->
+        <div class="h-16 flex items-center px-5 border-b border-white/50">
+            <div class="flex items-center gap-2.5 text-aqua-600">
+                <i class="ph-fill ph-drop text-2xl drop-shadow-sm"></i>
+                <div>
+                    <h1 class="text-base font-extrabold tracking-tight text-slate-800">Aqua AI</h1>
+                    <p class="text-[9px] uppercase tracking-wider text-slate-500 font-bold">Smart Water Intel</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/60 text-aqua-700 shadow-sm transition-all text-left font-semibold" data-target="dashboard">
+                <i class="ph ph-squares-four text-lg"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-white/50 hover:text-slate-900 transition-all text-left font-semibold" data-target="live-monitoring">
+                <i class="ph ph-chart-line-up text-lg"></i>
+                <span>Live Monitoring</span>
+            </button>
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-white/50 hover:text-slate-900 transition-all text-left font-semibold" data-target="prediction">
+                <i class="ph ph-brain text-lg"></i>
+                <span>Contamination Predict</span>
+            </button>
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-white/50 hover:text-slate-900 transition-all text-left font-semibold" data-target="alerts">
+                <i class="ph ph-bell text-lg"></i>
+                <span>Alerts</span>
+                <span id="nav-alert-badge" class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full shadow-sm hidden">!</span>
+            </button>
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-white/50 hover:text-slate-900 transition-all text-left font-semibold" data-target="devices">
+                <i class="ph ph-cpu text-lg"></i>
+                <span>Devices</span>
+            </button>
+            <div class="pt-4 pb-1">
+                <p class="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Development</p>
+            </div>
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-white/50 hover:text-slate-900 transition-all text-left font-semibold" data-target="simulator">
+                <i class="ph ph-flask text-lg"></i>
+                <span>Data Simulator</span>
+            </button>
+            <button class="nav-btn w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-slate-600 hover:bg-white/50 hover:text-slate-900 transition-all text-left font-semibold" data-target="settings">
+                <i class="ph ph-gear text-lg"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- Node Status -->
+        <div class="p-3 border-t border-white/50">
+            <div class="bg-white/50 backdrop-blur-sm rounded-xl p-2.5 flex items-center justify-between border border-white/60 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-wifi-high text-slate-500 text-base"></i>
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-700">NODE-001</p>
+                        <p class="text-[9px] text-slate-500 font-medium">Active Connection</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <span class="status-dot status-online"></span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative text-xs">
+        
+        <header class="h-16 glass-panel border-b border-white/50 flex items-center justify-between px-6 lg:px-8 z-10 sticky top-0">
+            <div class="flex items-center gap-3">
+                <button class="md:hidden text-slate-600 hover:text-slate-900 bg-white/50 p-1.5 rounded-lg">
+                    <i class="ph ph-list text-xl"></i>
+                </button>
+                <h2 id="page-title" class="text-lg font-extrabold text-slate-800 tracking-tight drop-shadow-sm">Dashboard</h2>
+            </div>
+            <div class="flex items-center gap-5">
+                <div class="hidden sm:flex flex-col items-end">
+                    <span class="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Last Synced</span>
+                    <span id="last-updated-time" class="text-xs font-bold text-slate-700">Just now</span>
+                </div>
+                <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-aqua-500 to-blue-500 flex items-center justify-center shadow-md border border-white/80">
+                    <i class="ph ph-user text-white text-sm"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Content Area -->
+        <div class="flex-1 overflow-y-auto p-5 lg:p-8 scroll-smooth relative z-0">
+            
+            <section id="dashboard" class="page-section active max-w-7xl mx-auto space-y-5">
+                <!-- Status Banner -->
+                <div id="dashboard-status-banner" class="glass-panel-heavy p-4 rounded-xl border-l-4 border-l-emerald-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                            <i class="ph-fill ph-check-circle text-emerald-500 text-base"></i>
+                            Water Quality Normal
+                        </h3>
+                        <p class="text-xs text-slate-600 mt-0.5 font-medium">All sensor parameters are currently within safe operational limits.</p>
+                    </div>
+                    <div class="text-right bg-white/50 py-1.5 px-3 rounded-lg border border-white/60">
+                        <p class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Current AI Risk</p>
+                        <p id="dash-risk-badge" class="text-sm font-black text-emerald-600 tracking-wider">LOW</p>
+                    </div>
+                </div>
+
+                <!-- Sensor Cards Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- pH Card -->
+                    <div class="glass-panel-heavy p-4 rounded-xl relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300">
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">pH Level</p>
+                                <h3 id="card-ph-val" class="text-2xl font-black text-slate-800 mt-0.5">7.2</h3>
+                            </div>
+                            <div class="p-2 bg-purple-100/80 rounded-lg text-purple-600 border border-purple-200/50 shadow-sm">
+                                <i class="ph ph-drop-half-bottom text-base"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 relative z-10">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Optimal</span>
+                            <span class="text-[10px] text-slate-500 font-semibold">Range: 6.5 - 8.5</span>
+                        </div>
+                    </div>
+
+                    <!-- TDS Card -->
+                    <div class="glass-panel-heavy p-4 rounded-xl relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300">
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">TDS</p>
+                                <h3 id="card-tds-val" class="text-2xl font-black text-slate-800 mt-0.5">280 <span class="text-xs font-bold text-slate-500">ppm</span></h3>
+                            </div>
+                            <div class="p-2 bg-blue-100/80 rounded-lg text-blue-600 border border-blue-200/50 shadow-sm">
+                                <i class="ph ph-waves text-base"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 relative z-10">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Safe</span>
+                            <span class="text-[10px] text-slate-500 font-semibold">&lt; 500 ppm</span>
+                        </div>
+                    </div>
+
+                    <!-- Turbidity Card -->
+                    <div class="glass-panel-heavy p-4 rounded-xl relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300">
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Turbidity</p>
+                                <h3 id="card-turbidity-val" class="text-2xl font-black text-slate-800 mt-0.5">3.4 <span class="text-xs font-bold text-slate-500">NTU</span></h3>
+                            </div>
+                            <div class="p-2 bg-yellow-100/80 rounded-lg text-yellow-700 border border-yellow-200/50 shadow-sm">
+                                <i class="ph ph-cloud-fog text-base"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 relative z-10">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700">Clear</span>
+                            <span class="text-[10px] text-slate-500 font-semibold">&lt; 5.0 NTU</span>
+                        </div>
+                    </div>
+
+                    <!-- Temperature Card -->
+                    <div class="glass-panel-heavy p-4 rounded-xl relative overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300">
+                        <div class="flex justify-between items-start mb-2 relative z-10">
+                            <div>
+                                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Temperature</p>
+                                <h3 id="card-temp-val" class="text-2xl font-black text-slate-800 mt-0.5">26.5 <span class="text-xs font-bold text-slate-500">°C</span></h3>
+                            </div>
+                            <div class="p-2 bg-orange-100/80 rounded-lg text-orange-600 border border-orange-200/50 shadow-sm">
+                                <i class="ph ph-thermometer text-base"></i>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 relative z-10">
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">Nominal</span>
+                            <span class="text-[10px] text-slate-500 font-semibold">Ambient</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <!-- WQI Overview -->
+                    <div class="glass-panel-heavy p-5 rounded-xl lg:col-span-2 flex flex-col justify-between">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 class="text-sm font-bold text-slate-800">Water Quality Index (WQI)</h3>
+                                <p class="text-xs font-medium text-slate-500">Demo calculation based on real-time parameters</p>
+                            </div>
+                            <div class="bg-white/50 p-1.5 rounded-lg border border-white/60 shadow-sm">
+                                <i class="ph ph-chart-polar text-xl text-aqua-600"></i>
+                            </div>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center sm:items-end gap-6 mb-1">
+                            <div class="relative w-28 h-28 flex items-center justify-center bg-white/40 rounded-full shadow-inner border border-white/50">
+                                <svg class="w-full h-full transform -rotate-90 p-1.5" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(226, 232, 240, 0.6)" stroke-width="8"></circle>
+                                    <circle id="wqi-circle" cx="50" cy="50" r="45" fill="none" stroke="#10b981" stroke-width="8" stroke-dasharray="283" stroke-dashoffset="30" class="transition-all duration-1000 ease-out drop-shadow-md"></circle>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="wqi-value" class="text-2xl font-black text-slate-800">85</span>
+                                    <span class="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Score</span>
+                                </div>
+                            </div>
+                            <div class="flex-1 w-full space-y-3">
+                                <div>
+                                    <div class="flex justify-between text-[11px] mb-1 font-bold">
+                                        <span class="text-slate-600">Excellent</span>
+                                        <span class="text-slate-500">90-100</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200/50 h-2 rounded-full overflow-hidden border border-white/30"><div class="bg-emerald-500 h-full w-full opacity-30"></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-[11px] mb-1 font-bold">
+                                        <span class="text-emerald-700">Good (Current)</span>
+                                        <span class="text-slate-500">70-89</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200/50 h-2 rounded-full overflow-hidden border border-white/30"><div id="wqi-bar" class="bg-emerald-500 h-full w-[75%] transition-all duration-500 shadow-sm relative"><div class="absolute inset-0 bg-white/20"></div></div></div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between text-[11px] mb-1 font-bold">
+                                        <span class="text-slate-600">Poor / Unsafe</span>
+                                        <span class="text-slate-500">&lt; 70</span>
+                                    </div>
+                                    <div class="w-full bg-slate-200/50 h-2 rounded-full overflow-hidden border border-white/30"><div class="bg-red-500 h-full w-[30%] opacity-30"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Prediction Mini -->
+                    <div class="glass-panel-heavy p-5 rounded-xl flex flex-col justify-between relative overflow-hidden">
+                        <div class="absolute -right-6 -top-6 w-28 h-28 bg-aqua-100/50 rounded-full blur-2xl"></div>
+                        <div class="flex items-center gap-1.5 mb-3 relative z-10">
+                            <div class="bg-aqua-100 p-1 rounded-md text-aqua-600"><i class="ph-fill ph-sparkle text-xs"></i></div>
+                            <h3 class="text-xs font-extrabold text-slate-800 uppercase tracking-wider">AI Assessment</h3>
+                        </div>
+                        <div class="flex-1 flex flex-col items-center justify-center text-center relative z-10 bg-white/40 rounded-lg p-3 border border-white/50 shadow-inner">
+                            <div id="mini-risk-circle" class="w-12 h-12 rounded-full bg-emerald-50 border-3 border-emerald-200 flex items-center justify-center mb-2 shadow-sm transition-colors">
+                                <span id="mini-risk-text" class="text-sm font-black text-emerald-600">LOW</span>
+                            </div>
+                            <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">Contamination Risk</p>
+                            <div class="mt-2 pt-2 border-t border-slate-200/50 w-full flex justify-between items-center text-[11px]">
+                                <span class="text-slate-500 font-semibold">Confidence</span>
+                                <span id="mini-confidence" class="font-bold text-slate-800">98.5%</span>
+                            </div>
+                        </div>
+                        <button onclick="switchTab('prediction')" class="w-full mt-3 py-2 bg-white/80 hover:bg-white border border-white shadow-sm rounded-lg text-xs font-bold text-aqua-700 transition-all relative z-10 flex items-center justify-center gap-1.5">
+                            Full Report <i class="ph-bold ph-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="live-monitoring" class="page-section max-w-7xl mx-auto space-y-5">
+                <div class="glass-panel-heavy p-4 rounded-xl flex items-center justify-between mb-2">
+                    <div>
+                        <h2 class="text-lg font-extrabold text-slate-800">Historical Data & Trends</h2>
+                        <p class="text-xs text-slate-600 mt-0.5 font-medium">Real-time visualizations of sensor readings over time.</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-aqua-50/80 px-3 py-1.5 rounded-lg border border-aqua-200/50 shadow-sm backdrop-blur-md">
+                        <span class="relative flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-aqua-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-aqua-500"></span>
+                        </span>
+                        <span class="text-[10px] font-bold text-aqua-800 tracking-wide uppercase">Live Sync</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <!-- Charts -->
+                    <div class="glass-panel-heavy p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-bold text-slate-800 bg-white/50 px-2.5 py-0.5 rounded-md">pH Variation</h3>
+                            <i class="ph-fill ph-drop-half-bottom text-purple-500 text-base drop-shadow-sm"></i>
+                        </div>
+                        <div class="h-52 w-full bg-white/30 rounded-lg p-2 border border-white/40"><canvas id="chart-ph"></canvas></div>
+                    </div>
+                    <div class="glass-panel-heavy p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-bold text-slate-800 bg-white/50 px-2.5 py-0.5 rounded-md">TDS (ppm)</h3>
+                            <i class="ph-fill ph-waves text-blue-500 text-base drop-shadow-sm"></i>
+                        </div>
+                        <div class="h-52 w-full bg-white/30 rounded-lg p-2 border border-white/40"><canvas id="chart-tds"></canvas></div>
+                    </div>
+                    <div class="glass-panel-heavy p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-bold text-slate-800 bg-white/50 px-2.5 py-0.5 rounded-md">Turbidity (NTU)</h3>
+                            <i class="ph-fill ph-cloud-fog text-yellow-600 text-base drop-shadow-sm"></i>
+                        </div>
+                        <div class="h-52 w-full bg-white/30 rounded-lg p-2 border border-white/40"><canvas id="chart-turbidity"></canvas></div>
+                    </div>
+                    <div class="glass-panel-heavy p-4 rounded-xl">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-xs font-bold text-slate-800 bg-white/50 px-2.5 py-0.5 rounded-md">Temperature (°C)</h3>
+                            <i class="ph-fill ph-thermometer text-orange-500 text-base drop-shadow-sm"></i>
+                        </div>
+                        <div class="h-52 w-full bg-white/30 rounded-lg p-2 border border-white/40"><canvas id="chart-temp"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="prediction" class="page-section max-w-5xl mx-auto space-y-5">
+                <div class="glass-panel-heavy p-5 rounded-xl mb-2">
+                    <h2 class="text-lg font-extrabold text-slate-800">AI Contamination Analysis</h2>
+                    <p class="text-xs text-slate-600 mt-0.5 font-medium">Machine learning model predicts water safety based on current sensor matrix.</p>
+                </div>
+
+                <div class="glass-panel-heavy p-6 rounded-2xl relative overflow-hidden shadow-lg" id="prediction-main-panel">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                        
+                        <!-- Current Data Snapshot -->
+                        <div class="space-y-5">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200/60 pb-2">Input Matrix Snapshot</h3>
+                            
+                            <div class="grid grid-cols-2 gap-3.5">
+                                <div class="bg-white/60 p-3 rounded-lg border border-white/85 shadow-sm backdrop-blur-sm">
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase">pH</p>
+                                    <p id="pred-ph" class="text-xl font-mono font-black text-slate-800 mt-0.5">7.20</p>
+                                </div>
+                                <div class="bg-white/60 p-3 rounded-lg border border-white/85 shadow-sm backdrop-blur-sm">
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase">TDS (ppm)</p>
+                                    <p id="pred-tds" class="text-xl font-mono font-black text-slate-800 mt-0.5">280</p>
+                                </div>
+                                <div class="bg-white/60 p-3 rounded-lg border border-white/85 shadow-sm backdrop-blur-sm">
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase">Turbidity (NTU)</p>
+                                    <p id="pred-turb" class="text-xl font-mono font-black text-slate-800 mt-0.5">3.4</p>
+                                </div>
+                                <div class="bg-white/60 p-3 rounded-lg border border-white/85 shadow-sm backdrop-blur-sm">
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase">Temp (°C)</p>
+                                    <p id="pred-temp" class="text-xl font-mono font-black text-slate-800 mt-0.5">26.5</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-blue-50/80 border border-blue-200/80 rounded-lg p-3 flex items-start gap-2.5 backdrop-blur-sm shadow-inner">
+                                <i class="ph-fill ph-info text-blue-500 text-base mt-0.5 drop-shadow-sm"></i>
+                                <p class="text-[11px] text-slate-700 leading-relaxed font-semibold">
+                                    <strong>Architecture Note:</strong> Values sent via POST to FastAPI backend model at <code class="bg-white border border-blue-200 px-1 py-0.5 rounded text-blue-800 font-bold shadow-sm text-[10px]">http://127.0.0.1:8000/predict</code>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Prediction Result -->
+                        <div class="flex flex-col">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200/60 pb-2 mb-4">Inference Result</h3>
+                            
+                            <div class="flex-1 flex flex-col items-center justify-center bg-white/50 rounded-xl border border-white/85 p-5 text-center shadow-inner backdrop-blur-sm">
+                                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Assessed Risk Level</p>
+                                <h1 id="api-result-risk" class="text-4xl font-black text-emerald-500 tracking-wide mb-4 drop-shadow-md">LOW</h1>
+                                
+                                <div class="w-full space-y-3 mb-6 max-w-xs mx-auto">
+                                    <div>
+                                        <div class="flex justify-between text-[11px] mb-1 font-bold">
+                                            <span class="text-slate-700">Low Probability</span>
+                                            <span id="prob-low" class="text-emerald-700">100%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-200/60 h-2 rounded-full border border-white/50 overflow-hidden"><div id="bar-low" class="bg-emerald-500 h-full shadow-sm" style="width: 100%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-[11px] mb-1 font-bold">
+                                            <span class="text-slate-700">Medium Probability</span>
+                                            <span id="prob-medium" class="text-yellow-700">0%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-200/60 h-2 rounded-full border border-white/50 overflow-hidden"><div id="bar-medium" class="bg-yellow-400 h-full shadow-sm" style="width: 0%"></div></div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-[11px] mb-1 font-bold">
+                                            <span class="text-slate-700">High Probability</span>
+                                            <span id="prob-high" class="text-red-600">0%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-200/60 h-2 rounded-full border border-white/50 overflow-hidden"><div id="bar-high" class="bg-red-500 h-full shadow-sm" style="width: 0%"></div></div>
+                                    </div>
+                                </div>
+
+                                <button onclick="runPrediction()" class="bg-gradient-to-r from-aqua-600 to-aqua-500 hover:from-aqua-700 hover:to-aqua-600 text-white font-bold py-2.5 px-6 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 w-full justify-center text-xs">
+                                    <i class="ph-bold ph-lightning text-sm"></i>
+                                    Run AI Prediction
+                                </button>
+                                <p id="api-status-msg" class="text-[11px] font-bold text-slate-500 mt-2 h-3.5"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass-panel-heavy p-3.5 rounded-xl">
+                    <div class="flex justify-between items-center cursor-pointer group" onclick="document.getElementById('api-raw').classList.toggle('hidden')">
+                        <p class="text-[11px] font-bold text-slate-600 group-hover:text-slate-800 uppercase transition-colors">View Raw API JSON</p>
+                        <i class="ph-bold ph-caret-down text-slate-500 group-hover:text-slate-800 bg-white/50 p-0.5 rounded"></i>
+                    </div>
+                    <pre id="api-raw" class="hidden mt-2.5 text-[10px] text-slate-800 font-mono bg-white/80 border border-white shadow-inner p-3 rounded-lg overflow-x-auto">
+{
+  "risk": "Low",
+  "probabilities": { "High": 0, "Low": 1, "Medium": 0 }
+}</pre>
+                </div>
+            </section>
+
+            <section id="alerts" class="page-section max-w-4xl mx-auto space-y-5">
+                <div class="glass-panel-heavy p-5 rounded-xl mb-2">
+                    <h2 class="text-lg font-extrabold text-slate-800">System Alerts</h2>
+                    <p class="text-xs text-slate-600 mt-0.5 font-medium">Automated warnings triggered by ML contamination predictions.</p>
+                </div>
+
+                <div id="alerts-container" class="space-y-3.5">
+                    <!-- Normal State -->
+                    <div id="alert-normal" class="glass-panel-heavy p-5 rounded-xl border-l-4 border-l-emerald-500 flex items-start gap-4 shadow-md">
+                        <div class="bg-emerald-100 p-2.5 rounded-full text-emerald-600 shrink-0 border border-emerald-200/50 shadow-sm">
+                            <i class="ph-fill ph-check-shield text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-bold text-emerald-800 mb-0.5">Water quality currently appears normal.</h3>
+                            <p class="text-xs font-medium text-slate-700">The prediction model indicates a low risk of contamination based on recent sensor data.</p>
+                            <p class="text-[10px] font-bold text-slate-500 mt-1.5 bg-white/50 inline-block px-2 py-0.5 rounded">System monitoring active.</p>
+                        </div>
+                    </div>
+                    
+                    <!-- High Alert State -->
+                    <div id="alert-high" class="glass-panel p-5 rounded-xl border border-red-300/50 border-l-4 border-l-red-500 bg-red-50/90 hidden items-start gap-4 shadow-lg backdrop-blur-md">
+                        <div class="bg-red-200 p-2.5 rounded-full text-red-600 shrink-0 border border-red-300 shadow-sm">
+                            <i class="ph-fill ph-warning-circle text-2xl animate-pulse"></i>
+                        </div>
+                        <div class="w-full">
+                            <div class="flex justify-between items-start mb-1.5">
+                                <h3 class="text-base font-extrabold text-red-800 leading-tight">CRITICAL: Potential contamination risk detected!</h3>
+                                <span class="text-[10px] bg-red-600 text-white px-2 py-0.5 rounded font-bold shadow-sm whitespace-nowrap ml-2">ACTION REQUIRED</span>
+                            </div>
+                            <p class="text-xs font-bold text-red-900/80 mb-3.5">The AI model predicts a HIGH probability of contamination. Immediate manual testing is recommended.</p>
+                            
+                            <div class="bg-white/80 p-3 rounded-lg border border-red-200 grid grid-cols-2 sm:grid-cols-4 gap-3 text-center shadow-inner">
+                                <div class="bg-white/60 rounded-md p-1.5 border border-white"><p class="text-[9px] font-bold text-slate-500 uppercase">pH</p><p id="alert-ph" class="text-base font-black text-slate-800">--</p></div>
+                                <div class="bg-red-100/50 rounded-md p-1.5 border border-red-200/50"><p class="text-[9px] font-bold text-red-600 uppercase">TDS</p><p id="alert-tds" class="text-base font-black text-red-700">--</p></div>
+                                <div class="bg-red-100/50 rounded-md p-1.5 border border-red-200/50"><p class="text-[9px] font-bold text-red-600 uppercase">Turbidity</p><p id="alert-turb" class="text-base font-black text-red-700">--</p></div>
+                                <div class="bg-white/60 rounded-md p-1.5 border border-white"><p class="text-[9px] font-bold text-slate-500 uppercase">Temp</p><p id="alert-temp" class="text-base font-black text-slate-800">--</p></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="devices" class="page-section max-w-4xl mx-auto space-y-5">
+                <div class="glass-panel-heavy p-5 rounded-xl mb-2">
+                    <h2 class="text-lg font-extrabold text-slate-800">Connected Devices</h2>
+                    <p class="text-xs text-slate-600 mt-0.5 font-medium">IoT sensor nodes currently reporting to the dashboard.</p>
+                </div>
+                
+                <div class="glass-panel-heavy p-6 rounded-2xl relative overflow-hidden shadow-md">
+                    <!-- integration comment for future ESP32 backend -->
+                    <!-- TODO: Fetch device list from backend /api/devices when ESP32 is integrated -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 border-b border-slate-200/60 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-white/80 p-2.5 rounded-xl border border-white shadow-sm">
+                                <i class="ph-fill ph-cpu text-2xl text-slate-700"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-1.5">
+                                    NODE-001
+                                    <span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-wider">Online</span>
+                                </h3>
+                                <p class="text-xs font-semibold text-slate-500">ESP32 Sensor Array Prototype</p>
+                            </div>
+                        </div>
+                        <div class="mt-3 sm:mt-0 text-right bg-white/50 p-2 rounded-lg border border-white/60">
+                            <p class="text-[9px] font-bold text-slate-500 mb-0.5 uppercase tracking-wider">Connection</p>
+                            <p class="text-xs font-bold text-slate-800 flex items-center justify-end gap-1"><i class="ph-bold ph-wifi-high text-aqua-600"></i> Wi-Fi (192.168.1.104)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+                        <div class="bg-white/60 p-3 rounded-lg text-center border border-white shadow-sm backdrop-blur-sm">
+                            <i class="ph-fill ph-drop-half-bottom text-purple-500 text-xl mb-1.5 drop-shadow-sm"></i>
+                            <p class="text-[9px] font-bold text-slate-600 uppercase">pH Sensor</p>
+                            <p class="text-[10px] font-extrabold text-emerald-600 mt-0.5">Active</p>
+                        </div>
+                        <div class="bg-white/60 p-3 rounded-lg text-center border border-white shadow-sm backdrop-blur-sm">
+                            <i class="ph-fill ph-waves text-blue-500 text-xl mb-1.5 drop-shadow-sm"></i>
+                            <p class="text-[9px] font-bold text-slate-600 uppercase">TDS Sensor</p>
+                            <p class="text-[10px] font-extrabold text-emerald-600 mt-0.5">Active</p>
+                        </div>
+                        <div class="bg-white/60 p-3 rounded-lg text-center border border-white shadow-sm backdrop-blur-sm">
+                            <i class="ph-fill ph-cloud-fog text-yellow-500 text-xl mb-1.5 drop-shadow-sm"></i>
+                            <p class="text-[9px] font-bold text-slate-600 uppercase">Turbidity Sen.</p>
+                            <p class="text-[10px] font-extrabold text-emerald-600 mt-0.5">Active</p>
+                        </div>
+                        <div class="bg-white/60 p-3 rounded-lg text-center border border-white shadow-sm backdrop-blur-sm">
+                            <i class="ph-fill ph-thermometer text-orange-500 text-xl mb-1.5 drop-shadow-sm"></i>
+                            <p class="text-[9px] font-bold text-slate-600 uppercase">DS18B20 Temp</p>
+                            <p class="text-[10px] font-extrabold text-emerald-600 mt-0.5">Active</p>
+                        </div>
+                        <div class="bg-white/60 p-3 rounded-lg text-center border border-white shadow-sm sm:col-span-1 col-span-2 backdrop-blur-sm">
+                            <i class="ph-fill ph-calculator text-slate-500 text-xl mb-1.5 drop-shadow-sm"></i>
+                            <p class="text-[9px] font-bold text-slate-600 uppercase">Local Edge WQI</p>
+                            <p class="text-[10px] font-extrabold text-emerald-600 mt-0.5">Calculating</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="settings" class="page-section max-w-4xl mx-auto space-y-5">
+                <div class="glass-panel-heavy p-5 rounded-xl">
+                    <h2 class="text-lg font-extrabold text-slate-800">Settings</h2>
+                    <p class="text-xs text-slate-600 mt-0.5 font-medium">Dashboard configuration (Placeholder for future development).</p>
+                </div>
+            </section>
+
+            <section id="simulator" class="page-section max-w-3xl mx-auto space-y-5 pb-16">
+                <div class="glass-panel-heavy p-5 rounded-xl mb-2">
+                    <h2 class="text-lg font-extrabold text-slate-800">Edge Data Simulator</h2>
+                    <p class="text-xs text-slate-600 mt-0.5 font-medium">Manually inject mock sensor data to test the dashboard UI and API predictions.</p>
+                </div>
+
+                <div class="glass-panel-heavy p-6 rounded-2xl shadow-lg border border-white">
+                    <div class="flex flex-wrap gap-3 mb-6 border-b border-slate-200/60 pb-4">
+                        <button onclick="generateNormalData()" class="px-4 py-2 bg-white/80 hover:bg-white text-emerald-700 border border-white rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="ph-bold ph-check-circle text-sm"></i> Load Normal Preset
+                        </button>
+                        <button onclick="generateAbnormalData()" class="px-4 py-2 bg-white/80 hover:bg-white text-red-600 border border-white rounded-lg text-xs font-bold shadow-sm transition-all flex items-center gap-1.5">
+                            <i class="ph-bold ph-warning text-sm"></i> Load Abnormal Preset
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div class="bg-white/40 p-2.5 rounded-lg border border-white/60 shadow-inner">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">pH Level</label>
+                            <input type="number" step="0.1" id="sim-ph" value="7.2" class="w-full bg-white/80 border border-white rounded-md px-3 py-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-aqua-500 shadow-sm text-xs">
+                        </div>
+                        <div class="bg-white/40 p-2.5 rounded-lg border border-white/60 shadow-inner">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">TDS (ppm)</label>
+                            <input type="number" id="sim-tds" value="280" class="w-full bg-white/80 border border-white rounded-md px-3 py-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-aqua-500 shadow-sm text-xs">
+                        </div>
+                        <div class="bg-white/40 p-2.5 rounded-lg border border-white/60 shadow-inner">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Turbidity (NTU)</label>
+                            <input type="number" step="0.1" id="sim-turb" value="3.4" class="w-full bg-white/80 border border-white rounded-md px-3 py-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-aqua-500 shadow-sm text-xs">
+                        </div>
+                        <div class="bg-white/40 p-2.5 rounded-lg border border-white/60 shadow-inner">
+                            <label class="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">Temperature (°C)</label>
+                            <input type="number" step="0.1" id="sim-temp" value="26.5" class="w-full bg-white/80 border border-white rounded-md px-3 py-2 text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-aqua-500 shadow-sm text-xs">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="sendReading()" class="flex-1 bg-slate-700 hover:bg-slate-800 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-md flex justify-center items-center gap-1.5 text-xs">
+                            <i class="ph-bold ph-broadcast text-sm"></i> Update Dashboard Data
+                        </button>
+                        <button onclick="runPredictionFromSim()" class="flex-1 bg-gradient-to-r from-aqua-600 to-aqua-500 hover:from-aqua-700 hover:to-aqua-600 text-white font-bold py-3 px-4 rounded-xl transition-all shadow-lg flex justify-center items-center gap-1.5 text-xs">
+                            <i class="ph-bold ph-brain text-sm"></i> Update & Predict
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+        
+        <div id="chat-window" class="chatbot-window glass-panel-heavy w-72 h-[380px] mb-3 rounded-xl flex flex-col border border-white/80 overflow-hidden shadow-2xl backdrop-blur-xl">
+            <!-- Chat Header -->
+            <div class="bg-gradient-to-r from-aqua-600 to-blue-600 p-3 flex justify-between items-center shadow-md z-10">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-7 h-7 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 flex items-center justify-center text-white shadow-inner">
+                        <i class="ph-fill ph-drop text-base drop-shadow-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-extrabold text-white leading-tight drop-shadow-sm">Aqua AI</h4>
+                        <p class="text-[9px] font-bold text-aqua-100 uppercase tracking-wider">Smart Assistant</p>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="text-white hover:bg-white/20 p-1 rounded transition-colors">
+                    <i class="ph-bold ph-x text-xs"></i>
+                </button>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="chat-messages" class="flex-1 bg-white/40 p-3 overflow-y-auto space-y-3 text-xs scroll-smooth">
+                <div class="flex gap-2 chat-message">
+                    <div class="w-6 h-6 rounded-full bg-aqua-100 text-aqua-600 flex items-center justify-center shrink-0 border border-aqua-200 shadow-sm mt-0.5">
+                        <i class="ph-fill ph-robot text-xs"></i>
+                    </div>
+                    <div class="bg-white border border-white/80 p-2.5 rounded-xl rounded-tl-none text-slate-700 shadow-sm font-medium leading-relaxed text-xs">
+                        Hello! I monitor the sensor data. How can I help you today?
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="p-2.5 bg-white/80 border-t border-white backdrop-blur-md">
+                <div class="flex flex-wrap gap-1 mb-2" id="chat-prompts">
+                    <button onclick="sendChatMessage('What is the current risk?')" class="text-[9px] font-bold bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 shadow-sm transition-colors whitespace-nowrap">Current risk?</button>
+                    <button onclick="sendChatMessage('Explain readings')" class="text-[9px] font-bold bg-white hover:bg-slate-50 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 shadow-sm transition-colors whitespace-nowrap">Explain readings</button>
+                    <button onclick="sendChatMessage('Why is risk high?')" class="text-[9px] font-bold bg-red-50 hover:bg-red-100 text-red-700 px-2.5 py-1 rounded-full border border-red-200 shadow-sm transition-colors whitespace-nowrap hidden" id="prompt-high">Why is risk high?</button>
+                </div>
+                <div class="relative">
+                    <input type="text" id="chat-input" placeholder="Ask about water quality..." class="w-full bg-white border border-slate-300 rounded-full pl-3 pr-9 py-2 text-[11px] text-slate-800 font-semibold focus:outline-none focus:ring-2 focus:ring-aqua-500 shadow-inner" onkeypress="if(event.key === 'Enter') sendManualChat()">
+                    <button onclick="sendManualChat()" class="absolute right-1 top-1 w-6 h-6 bg-aqua-600 hover:bg-aqua-700 rounded-full flex items-center justify-center text-white transition-colors shadow-sm">
+                        <i class="ph-bold ph-paper-plane-right text-[10px]"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Floating Button -->
+        <div class="flex flex-col items-end gap-2">
+            <button onclick="toggleChat()" class="w-14 h-14 bg-gradient-to-tr from-aqua-500 to-blue-500 rounded-full flex items-center justify-center text-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] shadow-aqua-500/40 hover:scale-105 transition-transform border-2 border-white relative group">
+                <i class="ph-fill ph-chat-teardrop-text text-2xl drop-shadow-sm"></i>
+                <div class="absolute -top-9 right-0 bg-white px-2.5 py-1 rounded-md text-[10px] font-bold text-slate-700 shadow-lg border border-slate-200 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                    Ask Aqua AI
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // State Management
+        const state = {
+            sensors: { pH: 7.2, tds: 280, turbidity: 3.4, temp: 26.5 },
+            prediction: { risk: "LOW", probabilities: { High: 0, Low: 1, Medium: 0 } },
+            history: { labels: [], pH: [], tds: [], turbidity: [], temp: [] }
+        };
+
+        // Navigation Logic
+        const navBtns = document.querySelectorAll('.nav-btn');
+        const sections = document.querySelectorAll('.page-section');
+        const pageTitle = document.getElementById('page-title');
+
+        navBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                navBtns.forEach(b => {
+                    b.classList.remove('bg-white/60', 'text-aqua-700', 'shadow-sm');
+                    b.classList.add('text-slate-600', 'hover:bg-white/50');
+                });
+                sections.forEach(s => s.classList.remove('active'));
+
+                btn.classList.add('bg-white/60', 'text-aqua-700', 'shadow-sm');
+                btn.classList.remove('text-slate-600', 'hover:bg-white/50');
+                
+                const targetId = btn.getAttribute('data-target');
+                document.getElementById(targetId).classList.add('active');
+                pageTitle.innerText = btn.querySelector('span').innerText;
+                
+                if(targetId === 'live-monitoring') Object.values(charts).forEach(c => c.resize());
+            });
+        });
+
+        function switchTab(tabId) {
+            const btn = document.querySelector(`.nav-btn[data-target="${tabId}"]`);
+            if(btn) btn.click();
+        }
+
+        // Updating UI elements
+        function updateDashboardUI() {
+            document.getElementById('last-updated-time').innerText = new Date().toLocaleTimeString();
+
+            document.getElementById('card-ph-val').innerText = state.sensors.pH.toFixed(1);
+            document.getElementById('card-tds-val').innerHTML = `${Math.round(state.sensors.tds)} <span class="text-xs font-bold text-slate-500">ppm</span>`;
+            document.getElementById('card-turbidity-val').innerHTML = `${state.sensors.turbidity.toFixed(1)} <span class="text-xs font-bold text-slate-500">NTU</span>`;
+            document.getElementById('card-temp-val').innerHTML = `${state.sensors.temp.toFixed(1)} <span class="text-xs font-bold text-slate-500">°C</span>`;
+
+            document.getElementById('pred-ph').innerText = state.sensors.pH.toFixed(2);
+            document.getElementById('pred-tds').innerText = Math.round(state.sensors.tds);
+            document.getElementById('pred-turb').innerText = state.sensors.turbidity.toFixed(1);
+            document.getElementById('pred-temp').innerText = state.sensors.temp.toFixed(1);
+
+            // Calculate Mock WQI
+            let wqi = 100;
+            wqi -= Math.abs(7.0 - state.sensors.pH) * 5;
+            wqi -= Math.max(0, state.sensors.tds - 200) * 0.05;
+            wqi -= state.sensors.turbidity * 2;
+            wqi = Math.max(0, Math.min(100, Math.round(wqi)));
+            
+            document.getElementById('wqi-value').innerText = wqi;
+            
+            const wqiCircle = document.getElementById('wqi-circle');
+            const wqiBar = document.getElementById('wqi-bar');
+            
+            const offset = 283 - (wqi * 283 / 100);
+            wqiCircle.style.strokeDashoffset = offset;
+            wqiBar.style.width = `${wqi}%`;
+
+            if(wqi > 89) { wqiCircle.style.stroke = '#10b981'; wqiBar.className = "bg-emerald-500 h-full w-full transition-all duration-500 shadow-sm relative"; }
+            else if (wqi > 69) { wqiCircle.style.stroke = '#fbbf24'; wqiBar.className = "bg-yellow-400 h-full w-full transition-all duration-500 shadow-sm relative"; }
+            else { wqiCircle.style.stroke = '#ef4444'; wqiBar.className = "bg-red-500 h-full w-full transition-all duration-500 shadow-sm relative"; }
+
+            document.getElementById('sim-ph').value = state.sensors.pH;
+            document.getElementById('sim-tds').value = state.sensors.tds;
+            document.getElementById('sim-turb').value = state.sensors.turbidity;
+            document.getElementById('sim-temp').value = state.sensors.temp;
+            
+            updateAlertsUI();
+        }
+
+        // FastAPI integration logic
+        async function runPrediction() {
+            const btnMsg = document.getElementById('api-status-msg');
+            btnMsg.innerText = "Sending request to localhost:8000...";
+            btnMsg.className = "text-[11px] font-bold text-aqua-600 mt-2 h-3.5";
+
+            const payload = {
+                pH: parseFloat(state.sensors.pH),
+                TDS: parseFloat(state.sensors.tds),
+                Turbidity: parseFloat(state.sensors.turbidity),
+                Temperature: parseFloat(state.sensors.temp)
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if(!response.ok) throw new Error("API non-200");
+                const result = await response.json();
+                state.prediction = result;
+                btnMsg.innerText = "Prediction successful.";
+                btnMsg.className = "text-[11px] font-bold text-emerald-600 mt-2 h-3.5";
+                document.getElementById('api-raw').innerText = JSON.stringify(result, null, 2);
+            } catch (error) {
+                console.warn("FastAPI fallback.");
+                btnMsg.innerText = "API Offline. Using local fallback.";
+                btnMsg.className = "text-[11px] font-bold text-yellow-600 mt-2 h-3.5";
+                
+                if(payload.TDS > 500 || payload.Turbidity > 10 || payload.pH < 6.0 || payload.pH > 9.0) {
+                    state.prediction = { risk: "High", probabilities: { High: 0.92, Low: 0.03, Medium: 0.05 } };
+                } else {
+                    state.prediction = { risk: "Low", probabilities: { High: 0.01, Low: 0.95, Medium: 0.04 } };
+                }
+                document.getElementById('api-raw').innerText = `// FASTAPI OFFLINE\n` + JSON.stringify(state.prediction, null, 2);
+            }
+            updatePredictionUI();
+        }
+
+        function updatePredictionUI() {
+            const risk = state.prediction.risk.toUpperCase();
+            const probs = state.prediction.probabilities || { High:0, Low:1, Medium:0 };
+            
+            const dashBadge = document.getElementById('dash-risk-badge');
+            const dashBanner = document.getElementById('dashboard-status-banner');
+            const dashBannerTitle = dashBanner.querySelector('h3');
+            const dashBannerDesc = dashBanner.querySelector('p');
+            const miniCircle = document.getElementById('mini-risk-circle');
+            const miniText = document.getElementById('mini-risk-text');
+            const miniConf = document.getElementById('mini-confidence');
+            const mainRisk = document.getElementById('api-result-risk');
+            
+            document.getElementById('prob-low').innerText = `${Math.round(probs.Low * 100)}%`;
+            document.getElementById('bar-low').style.width = `${probs.Low * 100}%`;
+            document.getElementById('prob-medium').innerText = `${Math.round(probs.Medium * 100)}%`;
+            document.getElementById('bar-medium').style.width = `${probs.Medium * 100}%`;
+            document.getElementById('prob-high').innerText = `${Math.round(probs.High * 100)}%`;
+            document.getElementById('bar-high').style.width = `${probs.High * 100}%`;
+
+            dashBadge.innerText = risk; mainRisk.innerText = risk; miniText.innerText = risk;
+
+            if(risk === "HIGH") {
+                dashBadge.className = "text-sm font-black text-red-600 tracking-wider";
+                dashBanner.className = "glass-panel-heavy p-4 rounded-xl border-l-4 border-l-red-500 bg-red-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                dashBannerTitle.innerHTML = `<i class="ph-fill ph-warning-circle text-red-600 text-base animate-pulse"></i> Contamination Detected`;
+                dashBannerTitle.className = "text-sm font-bold text-red-800 flex items-center gap-1.5";
+                dashBannerDesc.className = "text-xs font-bold text-red-900/80 mt-0.5";
+                dashBannerDesc.innerText = "Immediate attention required. Safety thresholds exceeded.";
+                
+                miniCircle.className = "w-12 h-12 rounded-full bg-red-100 border-3 border-red-200 flex items-center justify-center mb-2 shadow-sm";
+                miniText.className = "text-sm font-black text-red-600";
+                miniConf.innerText = `${Math.round(probs.High * 100)}%`;
+                mainRisk.className = "text-4xl font-black text-red-600 tracking-wide mb-4 drop-shadow-md";
+                
+                document.getElementById('nav-alert-badge').classList.remove('hidden');
+                document.getElementById('prompt-high').classList.remove('hidden');
+            } else {
+                dashBadge.className = "text-sm font-black text-emerald-600 tracking-wider";
+                dashBanner.className = "glass-panel-heavy p-4 rounded-xl border-l-4 border-l-emerald-500 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                dashBannerTitle.innerHTML = `<i class="ph-fill ph-check-circle text-emerald-500 text-base"></i> Water Quality Normal`;
+                dashBannerTitle.className = "text-sm font-bold text-slate-800 flex items-center gap-1.5";
+                dashBannerDesc.className = "text-xs text-slate-600 mt-0.5 font-medium";
+                dashBannerDesc.innerText = "All sensor parameters are currently within safe operational limits.";
+                
+                miniCircle.className = "w-12 h-12 rounded-full bg-emerald-50 border-3 border-emerald-200 flex items-center justify-center mb-2 shadow-sm";
+                miniText.className = "text-sm font-black text-emerald-600";
+                miniConf.innerText = `${Math.round(probs.Low * 100)}%`;
+                mainRisk.className = "text-4xl font-black text-emerald-500 tracking-wide mb-4 drop-shadow-md";
+                
+                document.getElementById('nav-alert-badge').classList.add('hidden');
+                document.getElementById('prompt-high').classList.add('hidden');
+            }
+            updateAlertsUI();
+        }
+
+        function updateAlertsUI() {
+            const risk = state.prediction.risk.toUpperCase();
+            if(risk === "HIGH") {
+                document.getElementById('alert-normal').classList.add('hidden');
+                document.getElementById('alert-high').classList.remove('hidden');
+                document.getElementById('alert-ph').innerText = state.sensors.pH.toFixed(2);
+                document.getElementById('alert-tds').innerText = state.sensors.tds;
+                document.getElementById('alert-turb').innerText = state.sensors.turbidity.toFixed(1);
+                document.getElementById('alert-temp').innerText = state.sensors.temp.toFixed(1);
+            } else {
+                document.getElementById('alert-high').classList.add('hidden');
+                document.getElementById('alert-normal').classList.remove('hidden');
+            }
+        }
+
+        // Simulator Logic
+        function generateNormalData() {
+            document.getElementById('sim-ph').value = 7.2;
+            document.getElementById('sim-tds').value = 280;
+            document.getElementById('sim-turb').value = 3.4;
+            document.getElementById('sim-temp').value = 26.5;
+        }
+
+        function generateAbnormalData() {
+            document.getElementById('sim-ph').value = 5.2;
+            document.getElementById('sim-tds').value = 900;
+            document.getElementById('sim-turb').value = 25.0;
+            document.getElementById('sim-temp').value = 30.0;
+        }
+
+        function sendReading() {
+            state.sensors.pH = parseFloat(document.getElementById('sim-ph').value);
+            state.sensors.tds = parseFloat(document.getElementById('sim-tds').value);
+            state.sensors.turbidity = parseFloat(document.getElementById('sim-turb').value);
+            state.sensors.temp = parseFloat(document.getElementById('sim-temp').value);
+            updateDashboardUI(); appendToHistory();
+        }
+
+        function runPredictionFromSim() { sendReading(); runPrediction(); switchTab('prediction'); }
+
+        // Chart.js configuration
+        let charts = {};
+        function initCharts() {
+            const chartOptions = {
+                responsive: true, maintainAspectRatio: false, color: '#475569',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.3)', drawBorder: false }, ticks: { color: '#64748b', font: { size: 10 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.3)', drawBorder: false }, ticks: { color: '#64748b', font: { size: 10 } } }
+                },
+                elements: { point: { radius: 0, hitRadius: 10, hoverRadius: 4 } },
+                interaction: { mode: 'index', intersect: false }
+            };
+
+            let now = new Date();
+            for(let i=20; i>=0; i--) {
+                let d = new Date(now - i*60000);
+                state.history.labels.push(`${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`);
+                state.history.pH.push(7.0 + Math.random()*0.4);
+                state.history.tds.push(270 + Math.random()*20);
+                state.history.turbidity.push(3.0 + Math.random()*1);
+                state.history.temp.push(26.0 + Math.random()*1);
+            }
+
+            const ctxPh = document.getElementById('chart-ph').getContext('2d');
+            charts.ph = new Chart(ctxPh, { type: 'line', data: { labels: state.history.labels, datasets: [{ label: 'pH', data: state.history.pH, borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.2)', fill: true, tension: 0.4, borderWidth: 2 }] }, options: chartOptions });
+
+            const ctxTds = document.getElementById('chart-tds').getContext('2d');
+            charts.tds = new Chart(ctxTds, { type: 'line', data: { labels: state.history.labels, datasets: [{ label: 'TDS (ppm)', data: state.history.tds, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.2)', fill: true, tension: 0.4, borderWidth: 2 }] }, options: chartOptions });
+
+            const ctxTurb = document.getElementById('chart-turbidity').getContext('2d');
+            charts.turbidity = new Chart(ctxTurb, { type: 'line', data: { labels: state.history.labels, datasets: [{ label: 'Turbidity (NTU)', data: state.history.turbidity, borderColor: '#eab308', backgroundColor: 'rgba(234, 179, 8, 0.2)', fill: true, tension: 0.4, borderWidth: 2 }] }, options: chartOptions });
+
+            const ctxTemp = document.getElementById('chart-temp').getContext('2d');
+            charts.temp = new Chart(ctxTemp, { type: 'line', data: { labels: state.history.labels, datasets: [{ label: 'Temperature (°C)', data: state.history.temp, borderColor: '#f97316', backgroundColor: 'rgba(249, 115, 22, 0.2)', fill: true, tension: 0.4, borderWidth: 2 }] }, options: chartOptions });
+        }
+
+        function appendToHistory() {
+            const now = new Date();
+            state.history.labels.shift(); state.history.labels.push(`${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`);
+            state.history.pH.shift(); state.history.pH.push(state.sensors.pH);
+            state.history.tds.shift(); state.history.tds.push(state.sensors.tds);
+            state.history.turbidity.shift(); state.history.turbidity.push(state.sensors.turbidity);
+            state.history.temp.shift(); state.history.temp.push(state.sensors.temp);
+
+            charts.ph.update(); charts.tds.update(); charts.turbidity.update(); charts.temp.update();
+        }
+
+        // Chatbot Logic
+        function toggleChat() {
+            const chat = document.getElementById('chat-window');
+            chat.classList.toggle('open');
+            if(chat.classList.contains('open')) {
+                const msgBox = document.getElementById('chat-messages');
+                msgBox.scrollTop = msgBox.scrollHeight;
+                document.getElementById('chat-input').focus();
+            }
+        }
+
+        function sendManualChat() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+
+            if(message) {
+                sendChatMessage(message, false);
+                input.value = '';
+            }
+        }
+
+        // Send both quick prompts and typed messages to the FastAPI chatbot.
+        function sendChatMessage(text, isQuickPrompt = true) {
+            const msgBox = document.getElementById('chat-messages');
+
+            // Show the user's message.
+            msgBox.insertAdjacentHTML('beforeend', `
+                <div class="flex justify-end gap-2 chat-message">
+                    <div class="bg-aqua-600 border border-aqua-700 p-2.5 rounded-xl rounded-tr-none text-white font-medium max-w-[80%] break-words shadow-sm text-xs">
+                        ${escapeHtml(text)}
+                    </div>
+                </div>
+            `);
+            msgBox.scrollTop = msgBox.scrollHeight;
+
+            // Add typing indicator.
+            const loadingId = 'loading-' + Date.now();
+            msgBox.insertAdjacentHTML('beforeend', `
+                <div id="${loadingId}" class="flex gap-2 chat-message">
+                    <div class="w-6 h-6 rounded-full bg-aqua-100 text-aqua-600 flex items-center justify-center shrink-0 border border-aqua-200 shadow-sm mt-0.5">
+                        <i class="ph-fill ph-robot text-xs"></i>
+                    </div>
+                    <div class="bg-white border border-white/80 p-2.5 rounded-xl rounded-tl-none text-slate-500 shadow-sm flex items-center typing-indicator">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+            `);
+            msgBox.scrollTop = msgBox.scrollHeight;
+
+            // Quick prompts and manually typed messages use the same backend.
+            callAquaAIBackend(text, loadingId, msgBox);
+        }
+
+        // Safely display user-entered text in the chat window.
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Connect the dashboard chatbot to FastAPI /chat.
+        async function callAquaAIBackend(userQuery, loadingId, msgBox) {
+            const wqiText = document.getElementById('wqi-value').innerText;
+            const wqi = parseFloat(wqiText) || 0;
+
+            const payload = {
+                message: userQuery,
+                risk: state.prediction.risk,
+                ph: parseFloat(state.sensors.pH),
+                tds: parseFloat(state.sensors.tds),
+                turbidity: parseFloat(state.sensors.turbidity),
+                temperature: parseFloat(state.sensors.temp),
+                wqi: wqi
+            };
+
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if(!response.ok) {
+                    throw new Error(`Chat API Error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const replyText = result.response || 'I could not generate a response.';
+
+                const loadingElement = document.getElementById(loadingId);
+                if(loadingElement) loadingElement.remove();
+
+                addBotMessage(replyText, msgBox);
+
+            } catch(error) {
+                console.error('Aqua AI Chat API Error:', error);
+
+                const loadingElement = document.getElementById(loadingId);
+                if(loadingElement) loadingElement.remove();
+
+                addBotMessage(
+                    "I’m currently unable to connect to the Aqua AI backend. Please make sure FastAPI is running at <strong>127.0.0.1:8000</strong>.",
+                    msgBox
+                );
+            }
+        }
+
+        function addBotMessage(text, msgBox) {
+            msgBox.insertAdjacentHTML('beforeend', `
+                <div class="flex gap-2 chat-message">
+                    <div class="w-6 h-6 rounded-full bg-aqua-100 text-aqua-600 flex items-center justify-center shrink-0 border border-aqua-200 shadow-sm mt-0.5">
+                        <i class="ph-fill ph-robot text-xs"></i>
+                    </div>
+                    <div class="bg-white border border-white/80 p-2.5 rounded-xl rounded-tl-none text-slate-700 shadow-sm font-medium leading-relaxed text-xs">
+                        ${text}
+                    </div>
+                </div>
+            `);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+
+        window.onload = () => { initCharts(); updateDashboardUI(); runPrediction(); };
+    </script>
+</body>
+</html>
