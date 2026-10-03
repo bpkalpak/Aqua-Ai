@@ -460,7 +460,7 @@
                             <div class="bg-blue-50/80 border border-blue-200/80 rounded-lg p-3 flex items-start gap-2.5 backdrop-blur-sm shadow-inner">
                                 <i class="ph-fill ph-info text-blue-500 text-base mt-0.5 drop-shadow-sm"></i>
                                 <p class="text-[11px] text-slate-700 leading-relaxed font-semibold">
-                                    <strong>Architecture Note:</strong> Values sent via POST to FastAPI backend model at <code class="bg-white border border-blue-200 px-1 py-0.5 rounded text-blue-800 font-bold shadow-sm text-[10px]">http://127.0.0.1:8000/predict</code>.
+                                    <strong>Architecture Note:</strong> Values sent via POST to FastAPI backend model at <code class="bg-white border border-blue-200 px-1 py-0.5 rounded text-blue-800 font-bold shadow-sm text-[10px]">/predict</code>.
                                 </p>
                             </div>
                         </div>
@@ -826,7 +826,7 @@
             };
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/predict', {
+                const response = await fetch('/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
